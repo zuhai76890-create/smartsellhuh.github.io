@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Smart Seller Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--accent:#ff6f00;--bg:#f5f5f5;--dark:#1e1e2f}
+  body{margin:0;font-family:'Roboto',sans-serif;background:var(--bg);color:#222}
+  header{background:var(--dark);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+  header h1{margin:0;color:var(--accent);font-size:22px}
+  nav a{color:#fff;margin:0 10px;text-decoration:none;font-weight:500}
+  nav a:hover{text-decoration:underline}
+  section{padding:36px 18px;max-width:1100px;margin:0 auto}
+  h2{color:var(--accent);text-align:center;margin-bottom:18px}
+  #productGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+  .product-card{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.08);text-align:center}
+  .product-card img{width:100%;height:200px;object-fit:cover}
+  .product-info{padding:12px}
+  .product-info h3{margin:8px 0}
+  .product-info p{margin:6px 0;font-weight:600;color:#333}
+  button{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer}
+  button:hover{filter:brightness(.95)}
+  input,textarea,select{width:100%;padding:8px;margin:6px 0 12px;border-radius:6px;border:1px solid #ccc}
+  .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:9999}
+  .modal .modal-body{background:#fff;padding:18px;border-radius:10px;max-width:520px;width:92%;max-height:90%;overflow:auto}
+  .close-btn{float:right;font-size:20px;cursor:pointer;color:var(--accent)}
+  .admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);padding:28px;overflow:auto;z-index:9999}
+  .editor-card{background:#fff;padding:14px;border-radius:8px;margin-bottom:12px;border:1px solid #e5e5e5}
+  .small{max-width:150px;display:block;margin:8px 0}
+  .row{display:flex;gap:10px}
+  .row > *{flex:1}
+  .text-center{text-align:center}
+  .muted{color:#666;font-size:14px}
+  .order-card{background:#fff;padding:12px;border-radius:8px;border:1px solid #e8e8e8;margin-bottom:12px}
+  .danger{background:#ffdddd;border-color:#ffbdbd}
+  .success{background:#ddffea;border-color:#bdf0c7}
+  .top-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:18px}
+  .add-btn{background:#2a9d8f}
+  .center{display:flex;justify-content:center}
+  @media (max-width:560px){ .row{flex-direction:column} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="siteTitle">Smart Seller Hub</h1>
+  <nav>
+    <a href="#home">Home</a>
+    <a href="#about">About Us</a>
+    <a href="#productsSection">Products</a>
+    <a href="#ordersSection">Orders</a>
+  </nav>
+</header>
+
+<!-- HOME -->
+<section id="home">
+  <h2 id="homeHeading">Welcome to Smart Seller Hub</h2>
+
+  <h3 style="text-align:center;color:var(--accent)">Your Style, Your Choice</h3>
+  <p id="homeText1" style="text-align:center;max-width:900px;margin:auto;">
+    Welcome to <strong>Smart Seller Hub</strong>, your trusted online destination for stylish watches, elegant chains, premium beauty creams, and trendy clothes — all in one place. We take pride in offering only the best quality products at affordable prices. Whether you're upgrading your personal style or looking for the perfect gift, our curated collection is designed to meet your needs with elegance and reliability.
+  </p>
+
+  <h3 style="text-align:center;color:var(--accent);margin-top:18px">Shop Smart, Live Better</h3>
+  <p id="homeText2" style="text-align:center;max-width:900px;margin:auto;">
+    At Smart Seller Hub, customer satisfaction is our top priority. We provide an easy-to-use ordering system, secure payment methods, and fast delivery across Pakistan. With verified sellers and 100% genuine products, you can shop confidently and experience a new level of online shopping convenience and trust.
+  </p>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <h2 id="aboutHeading">About Us</h2>
+  <p id="aboutText" style="max-width:900px;margin:auto;text-align:center;">
+    At <strong>Smart Seller Hub</strong>, we believe in combining quality, trust, and convenience to create the best online shopping experience for our customers. Our mission is to provide premium watches, stylish accessories, beauty essentials, and fashionable clothing — all verified for authenticity and value. We take pride in fast delivery, honest pricing, and responsive customer support to ensure your satisfaction with every purchase.
+  </p>
+</section>
+
+<!-- PRODUCTS -->
+<section id="productsSection">
+  <h2>Supreme Products</h2>
+
+  <div class="top-actions">
+    <input type="text" id="productSearch" placeholder="Search products (name, description, feature)..." style="max-width:460px">
+    <div class="center">
+      <button class="add-btn" onclick="requestPassword(true)">Admin (Edit / Add)</button>
+    </div>
+  </div>
+
+  <div id="productGrid"></div>
+</section>
+
+<!-- ORDERS -->
+<section id="ordersSection">
+  <h2>Order Status</h2>
+  <div id="orderList" style="max-width:900px;margin:auto;"></div>
+</section>
+
+<!-- PRODUCT DETAILS MODAL -->
+<div class="modal" id="productModal">
+  <div class="modal-body">
+    <span class="close-btn" onclick="closeModal()">&times;</span>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- ADMIN / EDITOR (created dynamically) -->
+
+<script>
+/* ---------------------------
+   Data model + persistence
+   --------------------------- */
+const ADMIN_PASSWORD = "Zuhaib123@";
+const LS_KEY = "smart_seller_data_v1";
+
+let state = {
+  products: [
+    { id: genId(), name:"Stylish Men's Watch", price:2499, description:"Elegant stainless steel design, water resistant.", features:["Stainless Steel","Water Resistant"], img:"https://via.placeholder.com/600x400?text=Men+Watch" },
+    { id: genId(), name:"Gold Chain Necklace", price:4999, description:"Premium 18K gold-plated chain.", features:["18K Gold-Plated","Durable"], img:"https://via.placeholder.com/600x400?text=Gold+Chain" },
+    { id: genId(), name:"Organic Beauty Cream", price:999, description:"Natural whitening cream, 50g pack.", features:["Natural Ingredients","Soft Skin"], img:"https://via.placeholder.com/600x400?text=Beauty+Cream" },
+    { id: genId(), name:"Trendy Cotton Shirt", price:1200, description:"Comfortable slim-fit cotton shirt in multiple colors.", features:["Cotton","Slim Fit"], img:"https://via.placeholder.com/600x400?text=Shirt" }
+  ],
+  homeHeading: document.getElementById('homeHeading').innerText,
+  homeText1: document.getElementById('homeText1').innerText,
+  homeText2: document.getElementById('homeText2').innerText,
+  aboutHeading: document.getElementById('aboutHeading').innerText,
+  aboutText: document.getElementById('aboutText').innerText,
+  orders: []
+};
+
+function genId(){ return 'id'+Math.random().toString(36).slice(2,9); }
+
+function saveState(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function loadState(){
+  const raw = localStorage.getItem(LS_KEY);
+  if(!raw) return;
+  try{
+    const s = JSON.parse(raw);
+    // simple merge to keep schema compatible
+    if(s.products) state.products = s.products;
+    if(s.homeHeading) state.homeHeading = s.homeHeading;
+    if(s.homeText1) state.homeText1 = s.homeText1;
+    if(s.homeText2) state.homeText2 = s.homeText2;
+    if(s.aboutHeading) state.aboutHeading = s.aboutHeading;
+    if(s.aboutText) state.aboutText = s.aboutText;
+    if(s.orders) state.orders = s.orders;
+  }catch(e){ console.warn("Failed to parse saved data", e) }
+}
+
+/* ---------------------------
+   Render functions
+   --------------------------- */
+function renderProducts(list){
+  const grid = document.getElementById('productGrid');
+  grid.innerHTML = "";
+  if(list.length === 0){
+    grid.innerHTML = "<p style='text-align:center;color:#666'>No products found.</p>";
+    return;
+  }
+  list.forEach((p,i)=>{
+    const card = document.createElement('div');
+    card.className = "product-card";
+    card.innerHTML = `
+      <img src="${p.img}" alt="${escapeHtml(p.name)}">
+      <div class="product-info">
+        <h3>${escapeHtml(p.name)}</h3>
+        <p>₨ ${Number(p.price).toLocaleString()}</p>
+        <div class="muted" style="font-size:13px">${escapeHtml(p.features.join(', '))}</div>
+        <div style="margin-top:10px">
+          <button onclick="showDetails('${p.id}')">View Details</button>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function renderOrders(){
+  const list = document.getElementById('orderList');
+  list.innerHTML = "";
+  if(state.orders.length === 0){
+    list.innerHTML = "<p style='text-align:center;color:#666'>No orders yet.</p>";
+    return;
+  }
+  state.orders.forEach((o, idx)=>{
+    const div = document.createElement('div');
+    div.className = "order-card";
+    if(o.status === "Complete") div.classList.add('success');
+    div.innerHTML = `
+      <p><strong>Product:</strong> ${escapeHtml(o.product)}</p>
+      <p><strong>Customer:</strong> ${escapeHtml(o.customer)}</p>
+      <p><strong>Address:</strong> ${escapeHtml(o.address)}</p>
+      <p><strong>Advance Payment Screenshot:</strong></p>
+      <img src="${o.ss}" style="max-width:260px;max-height:260px;border:1px solid #ddd;display:block;margin:8px 0;">
+      <p><strong>Status:</strong> <span id="status${idx}">${o.status}</span></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${o.status === "Pending" ? `<button onclick="markComplete(${idx})">Mark as Complete</button>` : ''}
+        <button onclick="removeOrder(${idx})" style="background:#d9534f">Delete Order</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+/* ---------------------------
+   Product modal / order placement
+   --------------------------- */
+function showDetails(id){
+  const p = state.products.find(x=>x.id===id);
+  if(!p) return alert("Product not found");
+  openModal(`
+    <h2>${escapeHtml(p.name)}</h2>
+    <img src="${p.img}" style="width:100%;height:auto;margin:10px 0;border-radius:6px;">
+    <p><strong>Price:</strong> ₨ ${Number(p.price).toLocaleString()}</p>
+    <p><strong>Description:</strong> ${escapeHtml(p.description)}</p>
+    <p><strong>Features:</strong> ${escapeHtml(p.features.join(', '))}</p>
+    <hr>
+    <h3>Order Now (Advance Payment ₨50 via Easypaisa)</h3>
+    <input type="text" id="custName" placeholder="Your Name">
+    <input type="text" id="custAddress" placeholder="Your Address">
+    <label class="muted">Upload Screenshot of Payment:</label>
+    <input type="file" id="custSSFile" accept="image/*">
+    <div class="center"><button onclick="placeOrder('${id}')">Place Order</button></div>
+  `);
+}
+function closeModal(){ document.getElementById('productModal').style.display = 'none'; document.getElementById('modalContent').innerHTML = ''; }
+function openModal(html){ document.getElementById('modalContent').innerHTML = html; document.getElementById('productModal').style.display = 'flex'; }
+
+/* Place order (stores base64 screenshot) */
+function placeOrder(productId){
+  const name = document.getElementById('custName').value.trim();
+  const address = document.getElementById('custAddress').value.trim();
+  const file = document.getElementById('custSSFile').files[0];
+  if(!name || !address || !file) return alert('All fields are required (name, address, screenshot).');
+
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const ssData = e.target.result;
+    const product = state.products.find(p=>p.id===productId);
+    state.orders.unshift({ product: product.name, customer: name, address: address, ss: ssData, status: "Pending", id: genId() });
+    saveState();
+    renderOrders();
+    closeModal();
+    alert('Order placed! It appears in Order Status.');
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ---------------------------
+   Order actions
+   --------------------------- */
+function markComplete(idx){
+  state.orders[idx].status = "Complete";
+  saveState();
+  renderOrders();
+}
+function removeOrder(idx){
+  if(!confirm('Delete this order?')) return;
+  state.orders.splice(idx,1);
+  saveState();
+  renderOrders();
+}
+
+/* ---------------------------
+   Admin / Editor
+   --------------------------- */
+function requestPassword(openAdd = false){
+  const pass = prompt("Enter admin password:");
+  if(pass === ADMIN_PASSWORD) {
+    openEditor(openAdd);
+  } else {
+    alert("Incorrect password!");
+  }
+}
+
+function openEditor(openAdd = false){
+  // build editor HTML
+  let html = `<div style="max-width:1000px;margin:auto">`;
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <h2 style="color:var(--accent);">Admin Editor</h2>
+            <div><button onclick="saveAll()" style="margin-right:8px">Save All</button><button onclick="closeEditor()">Close</button></div>
+           </div>`;
+
+  // Home / About editor
+  html += `<div class="editor-card">
+            <h3>🏠 Home Section</h3>
+            <label>Heading</label>
+            <input id="homeHead" value="${escapeHtml(state.homeHeading || '')}">
+            <label>Paragraph 1</label>
+            <textarea id="homeP1">${escapeHtml(state.homeText1 || '')}</textarea>
+            <label>Paragraph 2</label>
+            <textarea id="homeP2">${escapeHtml(state.homeText2 || '')}</textarea>
+          </div>`;
+
+  html += `<div class="editor-card">
+            <h3>ℹ️ About Us</h3>
+            <label>Heading</label>
+            <input id="aboutHead" value="${escapeHtml(state.aboutHeading || '')}">
+            <label>Paragraph</label>
+            <textarea id="aboutP">${escapeHtml(state.aboutText || '')}</textarea>
+          </div>`;
+
+  // Products editor
+  html += `<div class="editor-card"><h3>🛍️ Products</h3>
+           <div style="text-align:right;margin-bottom:8px"><button onclick="addProductDraft()">+ Add New Product</button></div>
+          `;
+  state.products.forEach((p, idx) => {
+    html += `<div id="prodBox${p.id}" style="border:1px dashed #e2e2e2;padding:10px;margin-bottom:10px;border-radius:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>Product #${idx+1}</strong>
+        <div><button onclick="deleteProduct('${p.id}')" style="background:#e63946">Delete</button></div>
+      </div>
+      <label>Name</label><input id="name_${p.id}" value="${escapeHtml(p.name)}">
+      <div class="row"><div><label>Price</label><input type="number" id="price_${p.id}" value="${p.price}"></div>
+      <div><label>Features (comma separated)</label><input id="feat_${p.id}" value="${escapeHtml(p.features.join(', '))}"></div></div>
+      <label>Description</label><textarea id="desc_${p.id}">${escapeHtml(p.description)}</textarea>
+      <label>Image (upload OR paste URL)</label>
+      <div class="row">
+        <div><input type="file" id="imgFile_${p.id}" accept="image/*" onchange="previewAdminImage('${p.id}')"></div>
+        <div><input id="imgURL_${p.id}" placeholder="https://example.com/img.jpg" value="${escapeHtml(p.img)}"></div>
+      </div>
+      <img id="preview_${p.id}" class="small" src="${p.img}">
+    </div>`;
+  });
+  html += `</div>`; // end products editor
+
+  // Orders management
+  html += `<div class="editor-card"><h3>📦 Orders (${state.orders.length})</h3>
+           <div style="max-height:220px;overflow:auto">`;
+  if(state.orders.length === 0){
+    html += '<p class="muted">No orders yet.</p>';
+  } else {
+    state.orders.forEach((o, idx) => {
+      html += `<div style="border-bottom:1px solid #eee;padding:8px 0">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>${escapeHtml(o.product)}</strong><div class="muted">${escapeHtml(o.customer)} - ${escapeHtml(o.address)}</div></div>
+          <div>
+            <button onclick="markComplete(${idx})">Mark Complete</button>
+            <button onclick="removeOrder(${idx})" style="background:#d9534f">Delete</button>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
+  html += `</div></div>`; // end orders card
+
+  html += `</div>`; // container end
+
+  // Add overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'adminOverlay';
+  overlay.className = 'admin-overlay';
+  overlay.innerHTML = `<div style="max-width:1100px;margin:auto">${html}</div>`;
+  document.body.appendChild(overlay);
+
+  // scroll to top of editor
+  overlay.scrollTop = 0;
+  if(openAdd) addProductDraft();
+}
+
+function closeEditor(){
+  const el = document.getElementById('adminOverlay');
+  if(el) el.remove();
+}
+
+/* Add new blank product (draft) */
+function addProductDraft(){
+  const newP = { id: genId(), name: "New Product", price: 0, description: "", features: [], img: "https://via.placeholder.com/600x400?text=New+Product" };
+  state.products.unshift(newP);
+  saveState();
+  // re-open editor to reflect changes
+  const el = document.getElementById('adminOverlay');
+  if(el){ el.remove(); openEditor(); }
+  else openEditor();
+}
+
+/* Delete product */
+function deleteProduct(id){
+  if(!confirm('Delete this product?')) return;
+  state.products = state.products.filter(p=>p.id !== id);
+  saveState();
+  const el = document.getElementById('adminOverlay');
+  if(el){ el.remove(); openEditor(); }
+  renderProducts(state.products);
+}
+
+/* Preview uploaded image in admin */
+function previewAdminImage(id){
+  const file = document.getElementById(`imgFile_${id}`).files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    const imgEl = document.getElementById(`preview_${id}`);
+    if(imgEl) imgEl.src = e.target.result;
+    const urlInput = document.getElementById(`imgURL_${id}`);
+    if(urlInput) urlInput.value = e.target.result; // write base64 into url input so it saves
+  };
+  reader.readAsDataURL(file);
+}
+
+/* Save everything from admin inputs into state */
+function saveAll(){
+  // home & about
+  const hh = document.getElementById('homeHead')?.value || '';
+  const hp1 = document.getElementById('homeP1')?.value || '';
+  const hp2 = document.getElementById('homeP2')?.value || '';
+  const ah = document.getElementById('aboutHead')?.value || '';
+  const ap = document.getElementById('aboutP')?.value || '';
+
+  state.homeHeading = hh;
+  state.homeText1 = hp1;
+  state.homeText2 = hp2;
+  state.aboutHeading = ah;
+  state.aboutText = ap;
+
+  // write to DOM
+  if(document.getElementById('homeHeading')) document.getElementById('homeHeading').innerText = hh;
+  if(document.getElementById('homeText1')) document.getElementById('homeText1').innerText = hp1;
+  if(document.getElementById('homeText2')) document.getElementById('homeText2').innerText = hp2;
+  if(document.getElementById('aboutHeading')) document.getElementById('aboutHeading').innerText = ah;
+  if(document.getElementById('aboutText')) document.getElementById('aboutText').innerText = ap;
+
+  // products
+  state.products.forEach(p=>{
+    const name = document.getElementById(`name_${p.id}`)?.value;
+    const price = document.getElementById(`price_${p.id}`)?.value;
+    const feat = document.getElementById(`feat_${p.id}`)?.value;
+    const desc = document.getElementById(`desc_${p.id}`)?.value;
+    const imgURL = document.getElementById(`imgURL_${p.id}`)?.value;
+    const preview = document.getElementById(`preview_${p.id}`)?.src;
+
+    if(typeof name !== 'undefined') p.name = name;
+    if(typeof price !== 'undefined') p.price = Number(price) || 0;
+    if(typeof feat !== 'undefined') p.features = feat.split(',').map(x=>x.trim()).filter(Boolean);
+    if(typeof desc !== 'undefined') p.description = desc;
+    // prefer preview (if changed), otherwise imgURL
+    if(preview) p.img = preview;
+    else if(imgURL) p.img = imgURL;
+  });
+
+  saveState();
+  renderProducts(state.products);
+  renderOrders();
+  closeEditor();
+  alert('✅ All changes saved.');
+}
+
+/* ---------------------------
+   Helpers & search
+   --------------------------- */
+function escapeHtml(s){
+  if(!s) return '';
+  return String(s)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'",'&#39;');
+}
+
+document.getElementById('productSearch').addEventListener('input', function(){
+  const q = (this.value || '').toLowerCase().trim();
+  if(!q) { renderProducts(state.products); return; }
+  const filtered = state.products.filter(p=>{
+    return p.name.toLowerCase().includes(q) ||
+           (p.description||'').toLowerCase().includes(q) ||
+           (p.features||[]).join(' ').toLowerCase().includes(q) ||
+           String(p.price).includes(q);
+  });
+  renderProducts(filtered);
+});
+
+/* ---------------------------
+   Init: load stored state and render
+   --------------------------- */
+loadState();
+ // apply loaded home/about text
+if(state.homeHeading) document.getElementById('homeHeading').innerText = state.homeHeading;
+if(state.homeText1) document.getElementById('homeText1').innerText = state.homeText1;
+if(state.homeText2) document.getElementById('homeText2').innerText = state.homeText2;
+if(state.aboutHeading) document.getElementById('aboutHeading').innerText = state.aboutHeading;
+if(state.aboutText) document.getElementById('aboutText').innerText = state.aboutText;
+
+renderProducts(state.products);
+renderOrders();
+
+/* ---------------------------
+   Modal close on outside click
+   --------------------------- */
+document.getElementById('productModal').addEventListener('click',(e)=>{
+  if(e.target === e.currentTarget) closeModal();
+});
+</script>
+</body>
+</html>
